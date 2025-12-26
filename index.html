@@ -112,7 +112,8 @@
                 }
             };
 
-            reader.readAsText(file); // テキストとして読み込む
+           // カンマの後ろに "Shift_JIS" を追加します
+            reader.readAsText(file, "Shift_JIS");
         }
 
         // --- 以下はいつもの機能 ---
@@ -156,4 +157,5 @@
         }
     </script>
 </body>
+
 </html>
