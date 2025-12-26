@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>シャッフル単語帳</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f4f8;
+        }
+        #card {
+            width: 300px;
+            height: 200px;
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+            border: 2px solid #3b82f6;
+            color: #333;
+            padding: 20px;
+            text-align: center;
+        }
+        #card:active { transform: scale(0.98); }
+        .button-container {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .btn-next { background-color: #3b82f6; }
+        .btn-next:hover { background-color: #2563eb; }
+        .btn-shuffle { background-color: #10b981; } /* 緑色 */
+        .btn-shuffle:hover { background-color: #059669; }
+    </style>
+</head>
+<body>
+
+    <div id="card" onclick="flipCard()">ここに単語が出ます</div>
+    
+    <div class="button-container">
+        <button class="btn-shuffle" onclick="shuffleWords()">シャッフル</button>
+        <button class="btn-next" onclick="nextWord()">次の単語</button>
+    </div>
+
+    <script>
+        // 単語リスト
+        let wordList = [
+            { front: "Apple", back: "りんご" },
+            { front: "Library", back: "図書館" },
+            { front: "Elephant", back: "象" },
+            { front: "Programming", back: "プログラミング" },
+            { front: "Success", back: "成功" },
+            { front: "Hello", back: "こんにちは" }
+        ];
+
+        let currentIndex = 0;
+        let isFront = true;
+        const cardElement = document.getElementById("card");
+
+        // 初期表示
+        updateCard();
+
+        function flipCard() {
+            if (isFront) {
+                cardElement.innerText = wordList[currentIndex].back;
+                cardElement.style.backgroundColor = "#e0f2fe";
+            } else {
+                cardElement.innerText = wordList[currentIndex].front;
+                cardElement.style.backgroundColor = "white";
+            }
+            isFront = !isFront;
+        }
+
+        function nextWord() {
+            currentIndex++;
+            if (currentIndex >= wordList.length) {
+                currentIndex = 0;
+            }
+            isFront = true;
+            updateCard();
+        }
+
+        // ★追加した機能: シャッフル
+        function shuffleWords() {
+            // フィッシャー・イェーツのシャッフル（公平に混ぜる有名なアルゴリズム）
+            for (let i = wordList.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [wordList[i], wordList[j]] = [wordList[j], wordList[i]];
+            }
+            
+            // 混ぜ終わったら1枚目に戻す
+            currentIndex = 0;
+            isFront = true;
+            updateCard();
+            alert("単語をシャッフルしました！");
+        }
+
+        function updateCard() {
+            cardElement.innerText = wordList[currentIndex].front;
+            cardElement.style.backgroundColor = "white";
+        }
+    </script>
+</body>
+</html>
