@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>物理の基礎固め</title>
+    <title>実力テスト付き単語帳</title>
     <style>
         body {
             font-family: sans-serif;
@@ -14,10 +14,21 @@
             height: 100vh;
             margin: 0;
             background-color: #f0f4f8;
+            color: #333;
         }
+
+        /* 進行度などの情報表示エリア */
+        .status-bar {
+            margin-bottom: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        /* カードのスタイル */
         #card {
-            width: 300px;
-            height: 200px;
+            width: 320px;
+            height: 220px;
             background-color: white;
             border-radius: 15px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
@@ -29,134 +40,105 @@
             cursor: pointer;
             user-select: none;
             border: 2px solid #3b82f6;
-            color: #333;
             padding: 20px;
             text-align: center;
             margin-bottom: 20px;
+            position: relative;
         }
         #card:active { transform: scale(0.98); }
+
+        /* ボタンエリア */
         .button-container {
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
             justify-content: center;
+            width: 350px;
         }
         button {
-            padding: 10px 20px;
+            padding: 12px 24px;
             font-size: 16px;
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: 8px;
             cursor: pointer;
+            font-weight: bold;
+            transition: opacity 0.2s;
         }
-        .btn-next { background-color: #3b82f6; }
-        .btn-shuffle { background-color: #10b981; }
-        
-        /* ファイル読み込みエリアのデザイン */
+        button:hover { opacity: 0.9; }
+
+        /* 色々なボタンの色 */
+        .btn-next { background-color: #3b82f6; }   /* 青 */
+        .btn-test { background-color: #f59e0b; }   /* オレンジ */
+        .btn-ok   { background-color: #10b981; }   /* 緑 */
+        .btn-ng   { background-color: #ef4444; }   /* 赤 */
+        .btn-retry{ background-color: #6366f1; }   /* 紫 */
+
+        /* ファイル読み込みエリア */
         .file-upload {
-            margin-bottom: 20px;
-            text-align: center;
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 14px;
         }
+
+        /* 非表示にするためのクラス */
+        .hidden { display: none; }
     </style>
 </head>
 <body>
 
     <div class="file-upload">
-        <p>↓ 作成したCSVファイルを選んでください</p>
         <input type="file" id="fileInput" accept=".csv" onchange="loadCSV(this)">
     </div>
 
-    <div id="card" onclick="flipCard()">ファイルを選択してください</div>
+    <div id="statusBar" class="status-bar">CSVを読み込んでください</div>
+
+    <div id="card" onclick="onCardClick()">ファイル選択で開始</div>
     
     <div class="button-container">
-        <button class="btn-shuffle" onclick="shuffleWords()">シャッフル</button>
-        <button class="btn-next" onclick="nextWord()">次の問題</button>
+        
+        <div id="studyControls">
+            <button class="btn-test" onclick="startTest()">テストを始める</button>
+            <button class="btn-next" onclick="nextWord()">次の単語</button>
+        </div>
+
+        <div id="testControls" class="hidden">
+            <button class="btn-ng" onclick="answer(false)">🙅‍♀️ わからない</button>
+            <button class="btn-ok" onclick="answer(true)">🙆‍♀️ わかる</button>
+        </div>
+
+        <div id="resultControls" class="hidden">
+            <button class="btn-retry" onclick="startTest()">もう一度テスト</button>
+            <button class="btn-next" onclick="endTest()">単語帳に戻る</button>
+        </div>
+
     </div>
 
     <script>
-        let wordList = []; // 最初は空っぽにしておきます
+        let wordList = [];
         let currentIndex = 0;
         let isFront = true;
-        const cardElement = document.getElementById("card");
+        let isTestMode = false; // テスト中かどうか
+        let score = 0;          // 正解数
 
-        // --- CSVファイルを読み込む機能 ---
+        const cardElement = document.getElementById("card");
+        const statusElement = document.getElementById("statusBar");
+        
+        const studyControls = document.getElementById("studyControls");
+        const testControls = document.getElementById("testControls");
+        const resultControls = document.getElementById("resultControls");
+
+        // --- CSV読み込み ---
         function loadCSV(input) {
             const file = input.files[0];
             if (!file) return;
-
             const reader = new FileReader();
-            
-            // ファイルを読み込み終わったら動く処理
             reader.onload = function(e) {
                 const text = e.target.result;
-                wordList = []; // リストをリセット
-
-                // 行ごとに分ける
+                wordList = [];
                 const lines = text.split(/\r\n|\n/);
-                
-                // 各行をカンマで分けてリストに追加
                 lines.forEach(line => {
                     const parts = line.split(',');
                     if (parts.length >= 2) {
-                        wordList.push({ front: parts[0], back: parts[1] });
-                    }
-                });
-
-                if (wordList.length > 0) {
-                    alert(wordList.length + "個の単語を読み込みました！");
-                    currentIndex = 0;
-                    isFront = true;
-                    updateCard();
-                } else {
-                    alert("データが見つかりませんでした。");
-                }
-            };
-
-           // カンマの後ろに "Shift_JIS" を追加します
-            reader.readAsText(file, "Shift_JIS");
-        }
-
-        // --- 以下はいつもの機能 ---
-
-        function flipCard() {
-            if (wordList.length === 0) return;
-            if (isFront) {
-                cardElement.innerText = wordList[currentIndex].back;
-                cardElement.style.backgroundColor = "#e0f2fe";
-            } else {
-                cardElement.innerText = wordList[currentIndex].front;
-                cardElement.style.backgroundColor = "white";
-            }
-            isFront = !isFront;
-        }
-
-        function nextWord() {
-            if (wordList.length === 0) return;
-            currentIndex++;
-            if (currentIndex >= wordList.length) currentIndex = 0;
-            isFront = true;
-            updateCard();
-        }
-
-        function shuffleWords() {
-            if (wordList.length === 0) return;
-            for (let i = wordList.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [wordList[i], wordList[j]] = [wordList[j], wordList[i]];
-            }
-            currentIndex = 0;
-            isFront = true;
-            updateCard();
-        }
-
-        function updateCard() {
-            if (wordList.length > 0) {
-                cardElement.innerText = wordList[currentIndex].front;
-                cardElement.style.backgroundColor = "white";
-            }
-        }
-    </script>
-</body>
-
-</html>
-
+                        wordList.push({ front: parts[0], back: parts
