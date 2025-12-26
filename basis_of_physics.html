@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>シャッフル単語帳</title>
+    <title>CSV読み込み単語帳</title>
     <style>
         body {
             font-family: sans-serif;
@@ -32,12 +32,14 @@
             color: #333;
             padding: 20px;
             text-align: center;
+            margin-bottom: 20px;
         }
         #card:active { transform: scale(0.98); }
         .button-container {
-            margin-top: 20px;
             display: flex;
             gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
         }
         button {
             padding: 10px 20px;
@@ -48,14 +50,23 @@
             cursor: pointer;
         }
         .btn-next { background-color: #3b82f6; }
-        .btn-next:hover { background-color: #2563eb; }
-        .btn-shuffle { background-color: #10b981; } /* 緑色 */
-        .btn-shuffle:hover { background-color: #059669; }
+        .btn-shuffle { background-color: #10b981; }
+        
+        /* ファイル読み込みエリアのデザイン */
+        .file-upload {
+            margin-bottom: 20px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
 
-    <div id="card" onclick="flipCard()">ここに単語が出ます</div>
+    <div class="file-upload">
+        <p>↓ 作成したCSVファイルを選んでください</p>
+        <input type="file" id="fileInput" accept=".csv" onchange="loadCSV(this)">
+    </div>
+
+    <div id="card" onclick="flipCard()">ファイルを選択してください</div>
     
     <div class="button-container">
         <button class="btn-shuffle" onclick="shuffleWords()">シャッフル</button>
@@ -63,24 +74,51 @@
     </div>
 
     <script>
-        // 単語リスト
-        let wordList = [
-            { front: "Apple", back: "りんご" },
-            { front: "Library", back: "図書館" },
-            { front: "Elephant", back: "象" },
-            { front: "Programming", back: "プログラミング" },
-            { front: "Success", back: "成功" },
-            { front: "Hello", back: "こんにちは" }
-        ];
-
+        let wordList = []; // 最初は空っぽにしておきます
         let currentIndex = 0;
         let isFront = true;
         const cardElement = document.getElementById("card");
 
-        // 初期表示
-        updateCard();
+        // --- CSVファイルを読み込む機能 ---
+        function loadCSV(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            
+            // ファイルを読み込み終わったら動く処理
+            reader.onload = function(e) {
+                const text = e.target.result;
+                wordList = []; // リストをリセット
+
+                // 行ごとに分ける
+                const lines = text.split(/\r\n|\n/);
+                
+                // 各行をカンマで分けてリストに追加
+                lines.forEach(line => {
+                    const parts = line.split(',');
+                    if (parts.length >= 2) {
+                        wordList.push({ front: parts[0], back: parts[1] });
+                    }
+                });
+
+                if (wordList.length > 0) {
+                    alert(wordList.length + "個の単語を読み込みました！");
+                    currentIndex = 0;
+                    isFront = true;
+                    updateCard();
+                } else {
+                    alert("データが見つかりませんでした。");
+                }
+            };
+
+            reader.readAsText(file); // テキストとして読み込む
+        }
+
+        // --- 以下はいつもの機能 ---
 
         function flipCard() {
+            if (wordList.length === 0) return;
             if (isFront) {
                 cardElement.innerText = wordList[currentIndex].back;
                 cardElement.style.backgroundColor = "#e0f2fe";
@@ -92,32 +130,29 @@
         }
 
         function nextWord() {
+            if (wordList.length === 0) return;
             currentIndex++;
-            if (currentIndex >= wordList.length) {
-                currentIndex = 0;
-            }
+            if (currentIndex >= wordList.length) currentIndex = 0;
             isFront = true;
             updateCard();
         }
 
-        // ★追加した機能: シャッフル
         function shuffleWords() {
-            // フィッシャー・イェーツのシャッフル（公平に混ぜる有名なアルゴリズム）
+            if (wordList.length === 0) return;
             for (let i = wordList.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [wordList[i], wordList[j]] = [wordList[j], wordList[i]];
             }
-            
-            // 混ぜ終わったら1枚目に戻す
             currentIndex = 0;
             isFront = true;
             updateCard();
-            alert("単語をシャッフルしました！");
         }
 
         function updateCard() {
-            cardElement.innerText = wordList[currentIndex].front;
-            cardElement.style.backgroundColor = "white";
+            if (wordList.length > 0) {
+                cardElement.innerText = wordList[currentIndex].front;
+                cardElement.style.backgroundColor = "white";
+            }
         }
     </script>
 </body>
